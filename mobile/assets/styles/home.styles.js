@@ -97,7 +97,7 @@ export const homeStyles = StyleSheet.create({
     fontWeight: "600",
   },
   recipesSection: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginTop: 8,
   },
   sectionHeader: {
@@ -171,6 +171,7 @@ export const homeStyles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 4,
     backgroundColor: COLORS.border,
+    overflow: "hidden",
   },
   selectedCategoryImage: {
     borderWidth: 2,
