@@ -71,11 +71,20 @@ const RecipeDetailScreen = () => {
     loadRecipeDetail();
   }, [recipeId, userId]);
 
-  const getYouTubeEmbedUrl = (url) => {
-    if (!url) return null;
-    const videoId = url.split("v=")[1];
-    return `https://www.youtube.com/embed/${videoId}`;
-  };
+const getYouTubeEmbedUrl = (url) => {
+  if (!url) return null;
+  
+  let videoId = "";
+  if (url.includes("v=")) {
+    // Handles https://www.youtube.com/watch?v=VIDEO_ID
+    videoId = url.split("v=")[1].split("&")[0];
+  } else if (url.includes("youtu.be/")) {
+    // Handles https://youtu.be/VIDEO_ID
+    videoId = url.split("youtu.be/")[1].split("?")[0];
+  }
+
+  return `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=0&showinfo=0&controls=1`;
+};
 
   const handleToggleSave = async () => {
     if (isSaving) return;
@@ -199,14 +208,17 @@ const RecipeDetailScreen = () => {
                 <Text style={recipeDetailStyles.sectionTitle}>Video Tutorial</Text>
               </View>
 
-              <View style={recipeDetailStyles.videoCard}>
-                <WebView
-                  style={recipeDetailStyles.webview}
-                  source={{ uri: getYouTubeEmbedUrl(recipe.youtubeUrl) }}
-                  allowsFullscreenVideo
-                  mediaPlaybackRequiresUserAction={false}
-                />
-              </View>
+           <View style={recipeDetailStyles.videoCard}>
+  <WebView
+    style={recipeDetailStyles.webview}
+    source={{ uri: getYouTubeEmbedUrl(recipe.youtubeUrl) }}
+    allowsFullscreenVideo={true}
+    javaScriptEnabled={true} // Required for YouTube player controls
+    domStorageEnabled={true}
+    originWhitelist={['*']} // Allows the WebView to load the external YouTube domain
+    scrollEnabled={false}
+  />
+</View>
             </View>
           )}
 
