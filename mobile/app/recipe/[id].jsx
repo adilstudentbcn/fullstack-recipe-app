@@ -30,9 +30,17 @@ const RecipeDetailScreen = () => {
     const checkIfSaved = async () => {
       try {
         const response = await fetch(`${API_URL}/favorites/${userId}`);
+        
+        // TECH LEAD FIX: Safety check for response status
+        if (!response.ok) return;
+
         const favorites = await response.json();
-        const isRecipeSaved = favorites.some((fav) => fav.recipeId === parseInt(recipeId));
-        setIsSaved(isRecipeSaved);
+        
+        // TECH LEAD FIX: Guard against non-array responses to prevent .some() crash
+        if (favorites && Array.isArray(favorites)) {
+          const isRecipeSaved = favorites.some((fav) => fav.recipeId === parseInt(recipeId));
+          setIsSaved(isRecipeSaved);
+        }
       } catch (error) {
         console.error("Error checking if recipe is saved:", error);
       }
@@ -59,35 +67,31 @@ const RecipeDetailScreen = () => {
       }
     };
 
-    checkIfSaved();
+    if (userId) checkIfSaved();
     loadRecipeDetail();
   }, [recipeId, userId]);
 
   const getYouTubeEmbedUrl = (url) => {
-    // example url: https://www.youtube.com/watch?v=mTvlmY4vCug
+    if (!url) return null;
     const videoId = url.split("v=")[1];
     return `https://www.youtube.com/embed/${videoId}`;
   };
 
   const handleToggleSave = async () => {
+    if (isSaving) return;
     setIsSaving(true);
 
     try {
       if (isSaved) {
-        // remove from favorites
         const response = await fetch(`${API_URL}/favorites/${userId}/${recipeId}`, {
           method: "DELETE",
         });
         if (!response.ok) throw new Error("Failed to remove recipe");
-
         setIsSaved(false);
       } else {
-        // add to favorites
         const response = await fetch(`${API_URL}/favorites`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId,
             recipeId: parseInt(recipeId),
@@ -110,11 +114,11 @@ const RecipeDetailScreen = () => {
   };
 
   if (loading) return <LoadingSpinner message="Loading recipe details..." />;
+  if (!recipe) return <View style={recipeDetailStyles.container}><Text>Recipe not found</Text></View>;
 
   return (
     <View style={recipeDetailStyles.container}>
       <ScrollView>
-        {/* HEADER */}
         <View style={recipeDetailStyles.headerContainer}>
           <View style={recipeDetailStyles.imageContainer}>
             <Image
@@ -153,7 +157,6 @@ const RecipeDetailScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Title Section */}
           <View style={recipeDetailStyles.titleSection}>
             <View style={recipeDetailStyles.categoryBadge}>
               <Text style={recipeDetailStyles.categoryText}>{recipe.category}</Text>
@@ -169,13 +172,9 @@ const RecipeDetailScreen = () => {
         </View>
 
         <View style={recipeDetailStyles.contentSection}>
-          {/* QUICK STATS */}
           <View style={recipeDetailStyles.statsContainer}>
             <View style={recipeDetailStyles.statCard}>
-              <LinearGradient
-                colors={["#FF6B6B", "#FF8E53"]}
-                style={recipeDetailStyles.statIconContainer}
-              >
+              <LinearGradient colors={["#FF6B6B", "#FF8E53"]} style={recipeDetailStyles.statIconContainer}>
                 <Ionicons name="time" size={20} color={COLORS.white} />
               </LinearGradient>
               <Text style={recipeDetailStyles.statValue}>{recipe.cookTime}</Text>
@@ -183,10 +182,7 @@ const RecipeDetailScreen = () => {
             </View>
 
             <View style={recipeDetailStyles.statCard}>
-              <LinearGradient
-                colors={["#4ECDC4", "#44A08D"]}
-                style={recipeDetailStyles.statIconContainer}
-              >
+              <LinearGradient colors={["#4ECDC4", "#44A08D"]} style={recipeDetailStyles.statIconContainer}>
                 <Ionicons name="people" size={20} color={COLORS.white} />
               </LinearGradient>
               <Text style={recipeDetailStyles.statValue}>{recipe.servings}</Text>
@@ -197,13 +193,9 @@ const RecipeDetailScreen = () => {
           {recipe.youtubeUrl && (
             <View style={recipeDetailStyles.sectionContainer}>
               <View style={recipeDetailStyles.sectionTitleRow}>
-                <LinearGradient
-                  colors={["#FF0000", "#CC0000"]}
-                  style={recipeDetailStyles.sectionIcon}
-                >
+                <LinearGradient colors={["#FF0000", "#CC0000"]} style={recipeDetailStyles.sectionIcon}>
                   <Ionicons name="play" size={16} color={COLORS.white} />
                 </LinearGradient>
-
                 <Text style={recipeDetailStyles.sectionTitle}>Video Tutorial</Text>
               </View>
 
@@ -218,13 +210,9 @@ const RecipeDetailScreen = () => {
             </View>
           )}
 
-          {/* INGREDIENTS SECTION */}
           <View style={recipeDetailStyles.sectionContainer}>
             <View style={recipeDetailStyles.sectionTitleRow}>
-              <LinearGradient
-                colors={[COLORS.primary, COLORS.primary + "80"]}
-                style={recipeDetailStyles.sectionIcon}
-              >
+              <LinearGradient colors={[COLORS.primary, COLORS.primary + "80"]} style={recipeDetailStyles.sectionIcon}>
                 <Ionicons name="list" size={16} color={COLORS.white} />
               </LinearGradient>
               <Text style={recipeDetailStyles.sectionTitle}>Ingredients</Text>
@@ -240,21 +228,14 @@ const RecipeDetailScreen = () => {
                     <Text style={recipeDetailStyles.ingredientNumberText}>{index + 1}</Text>
                   </View>
                   <Text style={recipeDetailStyles.ingredientText}>{ingredient}</Text>
-                  <View style={recipeDetailStyles.ingredientCheck}>
-                    <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.textLight} />
-                  </View>
                 </View>
               ))}
             </View>
           </View>
 
-          {/* INSTRUCTIONS SECTION */}
           <View style={recipeDetailStyles.sectionContainer}>
             <View style={recipeDetailStyles.sectionTitleRow}>
-              <LinearGradient
-                colors={["#9C27B0", "#673AB7"]}
-                style={recipeDetailStyles.sectionIcon}
-              >
+              <LinearGradient colors={["#9C27B0", "#673AB7"]} style={recipeDetailStyles.sectionIcon}>
                 <Ionicons name="book" size={16} color={COLORS.white} />
               </LinearGradient>
               <Text style={recipeDetailStyles.sectionTitle}>Instructions</Text>
@@ -266,41 +247,16 @@ const RecipeDetailScreen = () => {
             <View style={recipeDetailStyles.instructionsContainer}>
               {recipe.instructions.map((instruction, index) => (
                 <View key={index} style={recipeDetailStyles.instructionCard}>
-                  <LinearGradient
-                    colors={[COLORS.primary, COLORS.primary + "CC"]}
-                    style={recipeDetailStyles.stepIndicator}
-                  >
+                  <LinearGradient colors={[COLORS.primary, COLORS.primary + "CC"]} style={recipeDetailStyles.stepIndicator}>
                     <Text style={recipeDetailStyles.stepNumber}>{index + 1}</Text>
                   </LinearGradient>
                   <View style={recipeDetailStyles.instructionContent}>
                     <Text style={recipeDetailStyles.instructionText}>{instruction}</Text>
-                    <View style={recipeDetailStyles.instructionFooter}>
-                      <Text style={recipeDetailStyles.stepLabel}>Step {index + 1}</Text>
-                      <TouchableOpacity style={recipeDetailStyles.completeButton}>
-                        <Ionicons name="checkmark" size={16} color={COLORS.primary} />
-                      </TouchableOpacity>
-                    </View>
                   </View>
                 </View>
               ))}
             </View>
           </View>
-
-          <TouchableOpacity
-            style={recipeDetailStyles.primaryButton}
-            onPress={handleToggleSave}
-            disabled={isSaving}
-          >
-            <LinearGradient
-              colors={[COLORS.primary, COLORS.primary + "CC"]}
-              style={recipeDetailStyles.buttonGradient}
-            >
-              <Ionicons name="heart" size={20} color={COLORS.white} />
-              <Text style={recipeDetailStyles.buttonText}>
-                {isSaved ? "Remove from Favorites" : "Add to Favorites"}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
