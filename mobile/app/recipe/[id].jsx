@@ -1,4 +1,4 @@
-import { View, Text, Alert, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, Alert, ScrollView, TouchableOpacity, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/clerk-expo";
@@ -30,13 +30,10 @@ const RecipeDetailScreen = () => {
     const checkIfSaved = async () => {
       try {
         const response = await fetch(`${API_URL}/favorites/${userId}`);
-        
-        // TECH LEAD FIX: Safety check for response status
         if (!response.ok) return;
 
         const favorites = await response.json();
         
-        // TECH LEAD FIX: Guard against non-array responses to prevent .some() crash
         if (favorites && Array.isArray(favorites)) {
           const isRecipeSaved = favorites.some((fav) => fav.recipeId === parseInt(recipeId));
           setIsSaved(isRecipeSaved);
@@ -71,20 +68,15 @@ const RecipeDetailScreen = () => {
     loadRecipeDetail();
   }, [recipeId, userId]);
 
-const getYouTubeEmbedUrl = (url) => {
-  if (!url) return null;
-  
-  let videoId = "";
-  if (url.includes("v=")) {
-    // Handles https://www.youtube.com/watch?v=VIDEO_ID
-    videoId = url.split("v=")[1].split("&")[0];
-  } else if (url.includes("youtu.be/")) {
-    // Handles https://youtu.be/VIDEO_ID
-    videoId = url.split("youtu.be/")[1].split("?")[0];
-  }
+  // YouTube Error 153 Fix with Origin
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    const videoId = (match && match[2].length === 11) ? match[2] : null;
 
-  return `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=0&showinfo=0&controls=1`;
-};
+    return videoId ? `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=0&showinfo=0&controls=1&origin=http://localhost` : null;
+  };
 
   const handleToggleSave = async () => {
     if (isSaving) return;
@@ -208,17 +200,19 @@ const getYouTubeEmbedUrl = (url) => {
                 <Text style={recipeDetailStyles.sectionTitle}>Video Tutorial</Text>
               </View>
 
-           <View style={recipeDetailStyles.videoCard}>
-  <WebView
-    style={recipeDetailStyles.webview}
-    source={{ uri: getYouTubeEmbedUrl(recipe.youtubeUrl) }}
-    allowsFullscreenVideo={true}
-    javaScriptEnabled={true} // Required for YouTube player controls
-    domStorageEnabled={true}
-    originWhitelist={['*']} // Allows the WebView to load the external YouTube domain
-    scrollEnabled={false}
-  />
-</View>
+              <View style={recipeDetailStyles.videoCard}>
+                <WebView
+                  style={recipeDetailStyles.webview}
+                  source={{ uri: getYouTubeEmbedUrl(recipe.youtubeUrl) }}
+                  allowsFullscreenVideo={true}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  originWhitelist={['*']}
+                  androidLayerType="hardware"
+                  mediaPlaybackRequiresUserAction={false}
+                  scrollEnabled={false}
+                />
+              </View>
             </View>
           )}
 
@@ -269,6 +263,24 @@ const getYouTubeEmbedUrl = (url) => {
               ))}
             </View>
           </View>
+
+          {/* THE RESTORED BUTTON! */}
+          <TouchableOpacity
+            style={recipeDetailStyles.primaryButton}
+            onPress={handleToggleSave}
+            disabled={isSaving}
+          >
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.primary + "CC"]}
+              style={recipeDetailStyles.buttonGradient}
+            >
+              <Ionicons name="heart" size={20} color={COLORS.white} />
+              <Text style={recipeDetailStyles.buttonText}>
+                {isSaved ? "Remove from Favorites" : "Add to Favorites"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
         </View>
       </ScrollView>
     </View>
