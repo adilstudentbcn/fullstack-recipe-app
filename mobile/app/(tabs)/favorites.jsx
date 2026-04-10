@@ -19,27 +19,35 @@ const FavoritesScreen = () => {
     const loadFavorites = async () => {
       try {
         const response = await fetch(`${API_URL}/favorites/${user.id}`);
-        if (!response.ok) throw new Error("Failed to fetch favorites");
+        
+        // TECH LEAD FIX: Handle server errors without crashing the UI
+        if (!response.ok) {
+          setFavoriteRecipes([]);
+          return;
+        }
 
         const favorites = await response.json();
 
-        // transform the data to match the RecipeCard component's expected format
-        const transformedFavorites = favorites.map((favorite) => ({
-          ...favorite,
-          id: favorite.recipeId,
-        }));
-
-        setFavoriteRecipes(transformedFavorites);
+        // TECH LEAD FIX: Guard against non-array responses
+        if (favorites && Array.isArray(favorites)) {
+          const transformedFavorites = favorites.map((favorite) => ({
+            ...favorite,
+            id: favorite.recipeId,
+          }));
+          setFavoriteRecipes(transformedFavorites);
+        } else {
+          setFavoriteRecipes([]);
+        }
       } catch (error) {
         console.log("Error loading favorites", error);
-        Alert.alert("Error", "Failed to load favorites");
+        setFavoriteRecipes([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadFavorites();
-  }, [user.id]);
+    if (user?.id) loadFavorites();
+  }, [user?.id]);
 
   const handleSignOut = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -76,4 +84,5 @@ const FavoritesScreen = () => {
     </View>
   );
 };
+
 export default FavoritesScreen;
