@@ -23,7 +23,7 @@ export default function CategoryFilter({ categories, selectedCategory, onSelectC
                 source={{ uri: category.image }}
                 style={[homeStyles.categoryImage, isSelected && homeStyles.selectedCategoryImage]}
                 contentFit="cover"
-                // TECH LEAD FIX: Removed transition={300} to stop the images from disappearing on re-render
+                // transition={300}
               />
               <Text
                 style={[homeStyles.categoryText, isSelected && homeStyles.selectedCategoryText]}

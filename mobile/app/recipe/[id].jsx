@@ -68,14 +68,12 @@ const RecipeDetailScreen = () => {
     loadRecipeDetail();
   }, [recipeId, userId]);
 
-  // YouTube Error 153 Fix with Origin
-  const getYouTubeEmbedUrl = (url) => {
+  // Extract ONLY the Video ID instead of formatting a URL
+  const getYouTubeVideoId = (url) => {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    const videoId = (match && match[2].length === 11) ? match[2] : null;
-
-    return videoId ? `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=0&showinfo=0&controls=1&origin=http://localhost` : null;
+    return (match && match[2].length === 11) ? match[2] : null;
   };
 
   const handleToggleSave = async () => {
@@ -116,6 +114,28 @@ const RecipeDetailScreen = () => {
 
   if (loading) return <LoadingSpinner message="Loading recipe details..." />;
   if (!recipe) return <View style={recipeDetailStyles.container}><Text>Recipe not found</Text></View>;
+
+  // Generate raw HTML using the youtube-nocookie.com domain
+  const videoId = getYouTubeVideoId(recipe.youtubeUrl);
+  const videoHtml = videoId ? `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <style>
+          body { margin: 0; padding: 0; background-color: #1e1e1e; display: flex; justify-content: center; align-items: center; height: 100vh; }
+          iframe { width: 100vw; height: 100vh; border: none; }
+        </style>
+      </head>
+      <body>
+        <iframe 
+          src="https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1&rel=0&modestbranding=1" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen>
+        </iframe>
+      </body>
+    </html>
+  ` : null;
 
   return (
     <View style={recipeDetailStyles.container}>
@@ -191,7 +211,7 @@ const RecipeDetailScreen = () => {
             </View>
           </View>
 
-          {recipe.youtubeUrl && (
+          {videoId && (
             <View style={recipeDetailStyles.sectionContainer}>
               <View style={recipeDetailStyles.sectionTitleRow}>
                 <LinearGradient colors={["#FF0000", "#CC0000"]} style={recipeDetailStyles.sectionIcon}>
@@ -203,7 +223,10 @@ const RecipeDetailScreen = () => {
               <View style={recipeDetailStyles.videoCard}>
                 <WebView
                   style={recipeDetailStyles.webview}
-                  source={{ uri: getYouTubeEmbedUrl(recipe.youtubeUrl) }}
+                  source={{ 
+                    html: videoHtml,
+                    baseUrl: 'https://www.youtube-nocookie.com' 
+                  }}
                   allowsFullscreenVideo={true}
                   javaScriptEnabled={true}
                   domStorageEnabled={true}
@@ -264,7 +287,6 @@ const RecipeDetailScreen = () => {
             </View>
           </View>
 
-          {/* THE RESTORED BUTTON! */}
           <TouchableOpacity
             style={recipeDetailStyles.primaryButton}
             onPress={handleToggleSave}
